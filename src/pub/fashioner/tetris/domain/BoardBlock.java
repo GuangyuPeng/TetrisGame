@@ -90,12 +90,14 @@ public class BoardBlock {
         int boardWidth = board.getWidth();
 
         for(int i = 0; i < blockHeight; i++) {
-            if(ly+i < 0) continue;
+
             for(int j = 0; j < blockWidth; j++) {
                 // 方块当前位置为空，不造成冲突
                 if(block[i][j] == 0) continue;
                 // 越界 返回true
                 if(ly+i>=boardHeight||lx+j<0||lx+j>=boardWidth) return true;
+                // 还未进入主面板，跳过
+                if(ly+i < 0) continue;
                 // 与面板上已有方块冲突，返回true
                 if(boardArea[ly+i][lx+j]!=0) return true;
             }

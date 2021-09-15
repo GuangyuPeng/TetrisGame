@@ -2,6 +2,10 @@ package pub.fashioner.tetris.domain;
 
 import pub.fashioner.tetris.domain.exception.GameOverException;
 
+import java.util.ArrayDeque;
+import java.util.Arrays;
+import java.util.Deque;
+
 
 /**
  * <p>Board 表示游戏主面板</p>
@@ -20,6 +24,12 @@ public class Board {
     private Tetris tetris;      //关联的Tetris对象
 
     private int[][] boardShot;   //当前面板快照，仅申请一次空间
+
+    /**
+     * 存放被消除的行的队列，{@code eraseRows()}方法向队列中增加元素，
+     * {@code downRows()}方法向队列中移除元素
+     */
+    private final Deque<Integer> erasedRowQueue = new ArrayDeque<>();
 
     /**
      * <p>构造一个游戏主面板对象</p>
@@ -68,7 +78,7 @@ public class Board {
 
     /**
      * <p>返回游戏主面板对应的二维数组int[][]</p>
-     * @return int[][] 0表示空，非0表示占用
+     * @return int[][] 0表示空，>0表示占用， -1表示被消除
      * @author pgy
      * @since 1.0
      * @Date 16:12 2021/9/10
@@ -101,7 +111,7 @@ public class Board {
 
     /**
      * <p>获取面板快照，包括面板本身和当前方块</p>
-     * @return int[][] 0表示空，非0表示占用
+     * @return int[][] 0表示空，>0表示占用，-1表示被消除
      * @author pgy
      * @since 1.0
      * @Date 2021/9/15 10:14
@@ -132,7 +142,15 @@ public class Board {
         if(leftY + i >= height) return true;
         for(int j = 0; j < areaWidth; j++) {
             if(leftX+j >= 0 && leftX+j < width && area[i][j] != 0)
-                boardShot[leftY+i][leftX+j] = id;
+                if(boardShot[leftY+i][leftX+j] != -1)
+                    boardShot[leftY+i][leftX+j] = id;
+        }
+        return false;
+    }
+
+    private boolean hasBlock(int[] row) {
+        for(int i : row) {
+            if(i != 0) return true;
         }
         return false;
     }
@@ -153,17 +171,79 @@ public class Board {
         int leftY = boardBlock.getLeftY();
 
         for(int i = 0; i < areaHeight; i++) {
-            if(leftY + i < 0) throw new GameOverException("游戏结束");
+            if(leftY + i < 0)
+                if(hasBlock(area[i])) throw new GameOverException("游戏结束");
+                else continue;
             if (copyBlock(id, area, areaWidth, leftX, leftY, i, board)) break;
         }
 
+        // 找到方块中的第一个有效行
+        int i;
+        for(i = 0; i < areaHeight; i++) {
+            if(hasBlock(area[i])) break;
+        }
+        assert i < areaHeight;
+        // 更新curHeight
+        curHeight = Math.max(curHeight, height-leftY-i);
     }
-
-    public int eraseRows() {
-        return 0;
-    }
-
-    public boolean downRows() {
+    
+    private boolean isFilled(int[] row) {
+        for(int i : row) {
+            if(i == 0) return false;
+        }
         return true;
     }
+    
+    /**
+     * <p>在游戏面板中执行俄罗斯方块的消除动作，返回消除行数,
+     * 面板二维数组board中，被消除的行的值全部置为-1</p>
+     * @return int 消除行数
+     * @author pgy
+     * @since 1.0
+     * @Date 2021/9/15 16:16
+     */
+    public int eraseRows() {
+        erasedRowQueue.clear();
+        for(int i = height-curHeight; i < height; i++) {
+            if(isFilled(board[i])) {
+                Arrays.fill(board[i], -1);
+                erasedRowQueue.addLast(i);
+            }
+        }
+        return erasedRowQueue.size();
+    }
+
+    private void arrayAssign(int[] dest, int[] src) {
+        int len = dest.length;
+        for(int i = 0; i < len; i++)
+            dest[i] = src[i];
+    }
+
+    /**
+     * <p>执行完消除方法{@code eraseRows()}后，
+     * 使上面的行下降一行填补消除行，无可填补行返回false，否则返回true</p>
+     * @return boolean 无可填补行时返回false，否则返回true
+     * @author pgy
+     * @since 1.0
+     * @Date 2021/9/15 17:31
+     */
+    public boolean downRows() {
+        // 消除行队列为空，无法下移
+        if(erasedRowQueue.isEmpty()) return false;
+        // 整体下移
+        int row = erasedRowQueue.removeFirst();
+        int topRow = height - curHeight;
+        for(int i = row-1; i >= topRow; i--) {
+            arrayAssign(board[i+1], board[i]);
+        }
+        // 首行清空
+        Arrays.fill(board[topRow], 0);
+        // 高度-1
+        --curHeight;
+        return true;
+    }
+
+//    public void setCurHeight(int curHeight) {
+//        this.curHeight = curHeight;
+//    }
 }
