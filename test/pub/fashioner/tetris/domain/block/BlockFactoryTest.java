@@ -1,8 +1,7 @@
 package pub.fashioner.tetris.domain.block;
 
-import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 class BlockFactoryTest {
 

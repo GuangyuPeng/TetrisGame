@@ -42,7 +42,7 @@ public class BoardBlock {
         nexBlocks = new ArrayDeque<>(previewNum);
         while(nexBlocks.size() < previewNum) {
             int id = new Random().nextInt(types)+1;
-            nexBlocks.addLast(BlockFactory.createBlock(id);
+            nexBlocks.addLast(BlockFactory.createBlock(id));
         }
         loadBlocks();
     }
@@ -60,7 +60,7 @@ public class BoardBlock {
         // 预告块队列添加新方块
         int types = BlockFactory.getTypes();
         int id = new Random().nextInt(types)+1;
-        nexBlocks.addLast(BlockFactory.createBlock(id);
+        nexBlocks.addLast(BlockFactory.createBlock(id));
 
         // 确定初始的 leftX 和 leftY
         int boardWidth = board.getBoard()[0].length;
@@ -69,6 +69,39 @@ public class BoardBlock {
         int areaWidth = area[0].length;
         leftX = boardWidth/2 - areaWidth/2;
         leftY = -areaHeight;
+    }
+
+    /**
+     * <p>给定block对应的二维数组及其左上角坐标lx和ly，
+     * 判断block是否与当前面板冲突</p>
+     * @param block 二维数组，表示一个方块，0表示该方格空白，1表示方格占用
+     * @param lx block左上角相对于Board左上角的水平距离
+     * @param ly block左上角相对于Board左上角的垂直距离
+     * @return boolean 冲突返回true，否则false
+     * @author pgy
+     * @since 1.0
+     * @Date 2021/9/14 16:25
+     */
+    private boolean isConflict(int[][] block, int lx, int ly) {
+        int blockHeight = block.length;
+        int blockWidth = block[0].length;
+        int[][] boardArea = board.getBoard();
+        int boardHeight = board.getHeight();
+        int boardWidth = board.getWidth();
+
+        for(int i = 0; i < blockHeight; i++) {
+            if(ly+i < 0) continue;
+            for(int j = 0; j < blockWidth; j++) {
+                // 方块当前位置为空，不造成冲突
+                if(block[i][j] == 0) continue;
+                // 越界 返回true
+                if(ly+i>=boardHeight||lx+j<0||lx+j>=boardWidth) return true;
+                // 与面板上已有方块冲突，返回true
+                if(boardArea[ly+i][lx+j]!=0) return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -82,18 +115,57 @@ public class BoardBlock {
      */
     public boolean rotateBlock() {
         int[][] newBlock = curBlock.rotate();
+        if(isConflict(newBlock, leftX, leftY)) return false;
+        curBlock.setArea(newBlock);
+        return true;
     }
 
+    /**
+     * <p>对当前方块整体左移一格，若左移后方块与游戏面板Board不冲突，
+     * 则左移生效，返回true，否则返回false</p>
+     * @return boolean 若左移后方块与游戏面板Board不冲突，
+     * 则左移生效，返回true，否则返回false
+     * @author pgy
+     * @since 1.0
+     * @Date 2021/9/14 20:24
+     */
     public boolean leftBlock() {
-
+        int[][] area = curBlock.getArea();
+        if(isConflict(area, leftX-1, leftY)) return false;
+        leftX = leftX - 1;
+        return true;
     }
 
+    /**
+     * <p>对当前方块整体右移一格，若右移后方块与游戏面板Board不冲突，
+     * 则右移生效，返回true，否则返回false</p>
+     * @return boolean 若右移后方块与游戏面板Board不冲突，
+     * 则右移生效，返回true，否则返回false
+     * @author pgy
+     * @since 1.0
+     * @Date 2021/9/14 20:29
+     */
     public boolean rightBlock() {
-
+        int[][] area = curBlock.getArea();
+        if(isConflict(area, leftX+1, leftY)) return false;
+        leftX = leftX + 1;
+        return true;
     }
 
+    /**
+     * <p>对当前方块整体下移一格，若下移后方块与游戏面板Board不冲突，
+     * 则下移生效，返回true，否则返回false</p>
+     * @return boolean 若下移后方块与游戏面板Board不冲突，
+     * 则下移生效，返回true，否则返回false
+     * @author pgy
+     * @since 1.0
+     * @Date 2021/9/14 20:40
+     */
     public boolean downBlock() {
-
+        int[][] area = curBlock.getArea();
+        if(isConflict(area, leftX, leftY+1)) return false;
+        leftY = leftY + 1;
+        return true;
     }
 
     /**
@@ -129,6 +201,15 @@ public class BoardBlock {
     public int[][] getCurBlock() {
         return curBlock.getArea();
     }
+
+    /**
+     * <p>返回当前方块的唯一标识id</p>
+     * @return int 当前方块的唯一标识id
+     * @author pgy
+     * @since 1.0
+     * @Date 2021/9/15 9:54
+     */
+    public int getCurBlockId() {return curBlock.getId();}
 
     /**
      * <p>返回一个二维数组的队列，表示预告方块，

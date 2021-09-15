@@ -1,5 +1,7 @@
 package pub.fashioner.tetris.domain;
 
+import java.nio.file.NoSuchFileException;
+
 /**
  * <p>Tetris 表示一局游戏的相关信息</p>
  *
@@ -47,11 +49,15 @@ public class Tetris {
     /**
      * <p>设置该轮消掉的行数</p>
      * @param re 将被设置的行数值
+     * @throws IllegalArgumentException 参数必须非负
      * @author pgy
      * @since 1.0
      * @Date 20:25 2021/9/12
      */
-    public void setRndErased(int re) {rndErased = re;}
+    public void setRndErased(int re) {
+        if(re < 0) throw new IllegalArgumentException("this method requires 're >= 0'");
+        rndErased = re;
+    }
 
     /**
      * <p>返回整局游戏中总共消掉的行数</p>
