@@ -25,7 +25,7 @@ public class Tetris {
     public int getRound() {return round;}
 
     /**
-     * <p>进入下一轮，更新总共消掉的行数，
+     * <p>进入下一轮，
      * 归零该轮消掉的行数</p>
      * @author pgy
      * @since 1.0
@@ -33,7 +33,6 @@ public class Tetris {
      */
     public void nextRound() {
         ++round;
-        totErased += rndErased;
         rndErased = 0;
     }
 
@@ -57,6 +56,7 @@ public class Tetris {
     public void setRndErased(int re) {
         if(re < 0) throw new IllegalArgumentException("this method requires 're >= 0'");
         rndErased = re;
+        totErased += rndErased;
     }
 
     /**

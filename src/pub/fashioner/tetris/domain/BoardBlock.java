@@ -24,6 +24,10 @@ public class BoardBlock {
     private Deque<AbstractBlock>  nexBlocks;//预告块队列
     private final Board board;              //与BoardBlock关联的board对象
 
+    // 由方法getNexBlocks()和getNexBlocksId()使用
+    private Deque<int[][]> nexBlocksArea;
+    private Deque<Integer> nexBlocksId;
+
     /**
      * <p>构造BoardBlock对象，表示主面板上的当前被操作块和预告块，
      * 通过该对象，可以对当前方块进行旋转移动等操作</p>
@@ -45,6 +49,9 @@ public class BoardBlock {
             nexBlocks.addLast(BlockFactory.createBlock(id));
         }
         loadBlocks();
+
+        nexBlocksArea = new ArrayDeque<>(previewNum);
+        nexBlocksId = new ArrayDeque<>(previewNum);
     }
 
     /**
@@ -222,14 +229,35 @@ public class BoardBlock {
      * @Date 9:50 2021/9/13
      */
     public Deque<int[][]> getNexBlocks() {
-        // 创建一个新的队列
-        Deque<int[][]> deque = new ArrayDeque<>(previewNum);
+        // 清空队列
+        nexBlocksArea.clear();
         // 填充队列元素
         Iterator<AbstractBlock> iter = nexBlocks.iterator();
         iter.forEachRemaining((AbstractBlock block)->{
-            deque.add(block.getArea());
+            nexBlocksArea.add(block.getArea());
         });
         //返回队列
-        return deque;
+        return nexBlocksArea;
+    }
+
+    /**
+     * <p>返回一个整数队列，队列中每个元素表示预告方块队列中对应预告方块
+     * 的唯一标识id，预告方块队列可由方法{@code getNexBlocks()}获得</p>
+     * @see #getNexBlocks()
+     * @return java.util.Deque<java.lang.Integer>
+     * @author pgy
+     * @since 1.0
+     * @Date 2021/9/16 10:47
+     */
+    public Deque<Integer> getNexBlocksId() {
+        // 清空队列
+        nexBlocksId.clear();
+        // 填充队列元素
+        Iterator<AbstractBlock> iter = nexBlocks.iterator();
+        iter.forEachRemaining((AbstractBlock block)->{
+            nexBlocksId.add(block.getId());
+        });
+        //返回队列
+        return nexBlocksId;
     }
 }
