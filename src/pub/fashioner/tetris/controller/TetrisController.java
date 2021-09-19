@@ -1,44 +1,103 @@
 package pub.fashioner.tetris.controller;
 
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.AnchorPane;
+import javafx.stage.Stage;
 import pub.fashioner.tetris.controller.exception.RoundOverException;
 import pub.fashioner.tetris.domain.Board;
 import pub.fashioner.tetris.domain.BoardBlock;
 import pub.fashioner.tetris.domain.Tetris;
 import pub.fashioner.tetris.domain.exception.GameOverException;
 import pub.fashioner.tetris.domain.score.CalScore;
-import pub.fashioner.tetris.view.SimpleTetrisView;
+import pub.fashioner.tetris.view.TetrisViewController;
 
-import java.util.Scanner;
+import java.util.Timer;
+import java.util.concurrent.locks.Condition;
 
 /**
- * <p>SimpleTetrisController 俄罗斯方块游戏的简单版控制器，
- * 与SimpleTetrisView配合，主要用于测试domain层逻辑</p>
- * @see pub.fashioner.tetris.view.SimpleTetrisView
+ * <p>TetrisController 俄罗斯方块游戏的控制器类，
+ * 连接模型层domain和视图层view</p>
+ *
  * @author pgy
  * @version 1.0
- * @Date 2021/9/15 20:46
+ * @Date 2021/9/18 21:54
  */
-public class SimpleTetrisController {
+public class TetrisController {
 
+    // domain层三个核心类
     private Board mainBoard = new Board(10, 20, 1);
     private Tetris gameInfo = mainBoard.getTetris();
     private BoardBlock boardBlock = mainBoard.getBoardBlock();
 
-    private SimpleTetrisView simpleTetrisView = new SimpleTetrisView();
+    // 视图层控制器
+    private TetrisViewController viewController;
+
+    private Stage primaryStage;
+
+    // 定时器，定时下降方块
+    private Timer goDownTimer = new Timer();
+
+    public TetrisController(TetrisViewController viewController, Stage primaryStage) {
+        this.viewController = viewController;
+        this.viewController.initBlockPane(20, 10);
+        this.primaryStage = primaryStage;
+        start();
+    }
+
+    public void start() {
+        gameInfo.nextRound();
+        boardBlock.loadBlocks();
+        show(mainBoard.getBoardShot());
+        for(int i = 0; i < 10; i++) {
+            try {
+                goDown();
+            } catch (RoundOverException e) {
+                e.printStackTrace();
+            }
+            show(mainBoard.getBoardShot());
+        }
+        show(mainBoard.getBoardShot());
+        primaryStage.addEventHandler(KeyEvent.KEY_PRESSED, keyEvent -> {
+            System.out.println("key Event!!!!");
+            if(keyEvent.getCode() == KeyCode.W || keyEvent.getCode() == KeyCode.UP) {
+                rotate();
+            }
+            else if(keyEvent.getCode() == KeyCode.A || keyEvent.getCode() == KeyCode.LEFT) {
+                goLeft();
+            }
+            else if(keyEvent.getCode() == KeyCode.D || keyEvent.getCode() == KeyCode.RIGHT) {
+                goRight();
+            }
+            else if(keyEvent.getCode() == KeyCode.S || keyEvent.getCode() == KeyCode.DOWN) {
+                System.out.println("DOWN");
+                try {
+                    goDown();
+                } catch (RoundOverException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+
+    }
 
     /**
-     * <p>调用视图层，在控制台打印游戏主面板</p>
-     * @param board 二维数组，主面板快照
-     * @author 1.0
+     * <p>调用视图层，在UI界面显示游戏面板实时画面</p>
+     * @param board 二维数组，表示游戏面板快照
+     * @author pgy
      * @since 1.0
-     * @Date 2021/9/16 20:58
+     * @Date 2021/9/19 9:46
      */
-    private void show(int[][] board) {
-        simpleTetrisView.printTetrisView(board,
-                                         gameInfo.getRound(),
-                                         gameInfo.getScore(),
-                                         gameInfo.getTotErased(),
-                                         boardBlock.getNexBlocks().getFirst());
+    public void show(int[][] board) {
+        viewController.setData(gameInfo.getRound(),
+                gameInfo.getScore(),
+                gameInfo.getTotErased());
+        viewController.showBlock(board);
+        viewController.showNexBlock(boardBlock.getNexBlocks().getFirst());
+    }
+
+    private void inactivateTimer() {
+        goDownTimer.cancel();
     }
 
     /**
@@ -49,6 +108,8 @@ public class SimpleTetrisController {
      * @Date 2021/9/16 20:59
      */
     private void RoundOver() throws GameOverException {
+        // 令goDownTimer失效
+        inactivateTimer();
         // 将方块合并至主面板中
         mainBoard.mergeBlock();
         // 消除行
@@ -58,6 +119,7 @@ public class SimpleTetrisController {
         gameInfo.addScore(new CalScore());
         show(mainBoard.getBoard());
         // 填补空行
+
         while(mainBoard.downRows()) {
             show(mainBoard.getBoard());
         }
@@ -120,58 +182,5 @@ public class SimpleTetrisController {
         while(boardBlock.downBlock());
         show(mainBoard.getBoardShot());
         throw new RoundOverException("can't move down any more");
-    }
-
-    /**
-     * <p>游戏主循环，不断接收控制台输入，执行相应动作</p>
-     * @author pgy
-     * @since 1.0
-     * @Date 2021/9/16 21:08
-     */
-    public void mainLoop() {
-        try(Scanner sc = new Scanner(System.in)) {
-            while(true) {
-                gameInfo.nextRound();
-                boardBlock.loadBlocks();
-                show(mainBoard.getBoardShot());
-                try {
-                    while(true) {
-                        System.out.print("Input action(w a d s [space]): ");
-                        String str = sc.nextLine();
-                        if(str.length() == 0) continue;
-                        char ch = str.charAt(0);
-                        switch(ch) {
-                            case 'w':
-                                rotate();
-                                break;
-                            case 'a':
-                                goLeft();
-                                break;
-                            case 'd':
-                                goRight();
-                                break;
-                            case 's':
-                                goDown();
-                                break;
-                            case ' ':
-                                goStraightDown();
-                                break;
-                            default:
-                        }
-                    }
-                }
-                catch(RoundOverException roe) {
-                    RoundOver();
-                }
-            }
-        }
-        catch (GameOverException e) {
-            System.out.println("Game Over!!!");
-        }
-    }
-
-    public static void main(String[] args) {
-        SimpleTetrisController tetrisController = new SimpleTetrisController();
-        tetrisController.mainLoop();
     }
 }
