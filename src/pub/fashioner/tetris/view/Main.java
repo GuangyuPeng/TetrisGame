@@ -4,7 +4,7 @@ package pub.fashioner.tetris.view;
 import javafx.application.Application;
 
 /**
- * <p>Main TODO</p>
+ * <p>Main 程序入口</p>
  *
  * @author pgy
  * @version 1.0

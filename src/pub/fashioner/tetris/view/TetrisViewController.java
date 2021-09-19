@@ -9,13 +9,16 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.fxml.FXML;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.RowConstraints;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.stage.Screen;
 
 /**
  * <p>TetrisViewController 连接GameBoard.fxml和TetrisView主程序，
@@ -33,6 +36,9 @@ public class TetrisViewController {
     private Label score;
     @FXML
     private Label rows;
+
+    @FXML
+    private AnchorPane rootPane;
 
     @FXML
     private GridPane blockPane;
@@ -53,6 +59,16 @@ public class TetrisViewController {
         this.rows.setText(Integer.toString(rows));
     }
 
+    public void initSize() {
+        // set size
+        Rectangle2D screenRectangle = Screen.getPrimary().getBounds();
+        double height = screenRectangle.getHeight();
+        rootPane.setPrefHeight(height*0.8);
+        rootPane.setPrefWidth(height*0.8*0.8);
+        nexBlockPane.setPrefHeight(200*height*0.8/1000);
+        nexBlockPane.setPrefWidth(200*height*0.8/1000);
+    }
+
     public void initBlockPane(int height, int width) {
         for(int i = 0; i < height; i++) {
             RowConstraints con = new RowConstraints();
@@ -66,12 +82,10 @@ public class TetrisViewController {
         }
 
         blockPaneNodes = new Object[height][width];
-        int row = nexBlockPane.getRowCount();
-        int col = nexBlockPane.getColumnCount();
-        nexBlockPaneNodes = new Object[row][col];
+        nexBlockPaneNodes = new Object[4][4];
 
-        blockPaneRows = new SimpleIntegerProperty(blockPane.getRowCount());
-        blockPaneColumns = new SimpleIntegerProperty(blockPane.getColumnCount());
+        blockPaneRows = new SimpleIntegerProperty(height);
+        blockPaneColumns = new SimpleIntegerProperty(width);
     }
 
     public void showBlock(int[][] board) {
@@ -93,6 +107,8 @@ public class TetrisViewController {
                     rect.heightProperty().bind(rectHeight);
                     rect.widthProperty().bind(rectWidth);
                     rect.setFill(Color.LIGHTSKYBLUE);
+                    rect.setLayoutX(rect.getLayoutX()+2);
+                    rect.setLayoutY(rect.getLayoutY()+2);
                     blockPane.add(rect, j, i);
                     blockPaneNodes[i][j] = rect;
                 }
@@ -102,8 +118,8 @@ public class TetrisViewController {
 
     public void showNexBlock(int[][] nexBlock) {
         if(nexBlock != nexBlockCache) {
-            int row = nexBlockPane.getRowCount();
-            int col = nexBlockPane.getColumnCount();
+            int row = 4;
+            int col = 4;
             double height = nexBlockPane.getHeight();
             double width = nexBlockPane.getWidth();
             double rectHeight = height/row - 1;
@@ -124,6 +140,8 @@ public class TetrisViewController {
                         rect.setHeight(rectHeight);
                         rect.setWidth(rectWidth);
                         rect.setFill(Color.DARKGRAY);
+                        rect.setX(rect.getX()+1);
+                        rect.setY(rect.getY()+1);
                         nexBlockPane.add(rect, j, i);
                         nexBlockPaneNodes[i][j] = rect;
                     }

@@ -1,5 +1,7 @@
 package pub.fashioner.tetris.controller;
 
+import javafx.application.Platform;
+import javafx.event.EventHandler;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.AnchorPane;
@@ -13,6 +15,7 @@ import pub.fashioner.tetris.domain.score.CalScore;
 import pub.fashioner.tetris.view.TetrisViewController;
 
 import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.locks.Condition;
 
 /**
@@ -31,12 +34,12 @@ public class TetrisController {
     private BoardBlock boardBlock = mainBoard.getBoardBlock();
 
     // 视图层控制器
-    private TetrisViewController viewController;
+    private final TetrisViewController viewController;
 
-    private Stage primaryStage;
+    private final Stage primaryStage;
 
     // 定时器，定时下降方块
-    private Timer goDownTimer = new Timer();
+    private Timer goDownTimer;
 
     public TetrisController(TetrisViewController viewController, Stage primaryStage) {
         this.viewController = viewController;
@@ -48,37 +51,35 @@ public class TetrisController {
     public void start() {
         gameInfo.nextRound();
         boardBlock.loadBlocks();
-        show(mainBoard.getBoardShot());
-        for(int i = 0; i < 10; i++) {
-            try {
-                goDown();
-            } catch (RoundOverException e) {
-                e.printStackTrace();
-            }
-            show(mainBoard.getBoardShot());
-        }
-        show(mainBoard.getBoardShot());
-        primaryStage.addEventHandler(KeyEvent.KEY_PRESSED, keyEvent -> {
-            System.out.println("key Event!!!!");
-            if(keyEvent.getCode() == KeyCode.W || keyEvent.getCode() == KeyCode.UP) {
-                rotate();
-            }
-            else if(keyEvent.getCode() == KeyCode.A || keyEvent.getCode() == KeyCode.LEFT) {
-                goLeft();
-            }
-            else if(keyEvent.getCode() == KeyCode.D || keyEvent.getCode() == KeyCode.RIGHT) {
-                goRight();
-            }
-            else if(keyEvent.getCode() == KeyCode.S || keyEvent.getCode() == KeyCode.DOWN) {
-                System.out.println("DOWN");
-                try {
-                    goDown();
-                } catch (RoundOverException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
 
+        activateTimer();
+        activateKeyEvent();
+    }
+
+    private EventHandler<KeyEvent> keyEventEventHandler = keyEvent -> {
+        if(keyEvent.getCode() == KeyCode.W || keyEvent.getCode() == KeyCode.UP) {
+            rotate();
+        }
+        else if(keyEvent.getCode() == KeyCode.A || keyEvent.getCode() == KeyCode.LEFT) {
+            goLeft();
+        }
+        else if(keyEvent.getCode() == KeyCode.D || keyEvent.getCode() == KeyCode.RIGHT) {
+            goRight();
+        }
+        else if(keyEvent.getCode() == KeyCode.S || keyEvent.getCode() == KeyCode.DOWN) {
+            goDown();
+        }
+        else if(keyEvent.getCode() == KeyCode.SPACE) {
+            goStraightDown();
+        }
+    };
+
+    private void activateKeyEvent() {
+        primaryStage.addEventHandler(KeyEvent.KEY_PRESSED, keyEventEventHandler);
+    }
+
+    private void inactivateKeyEvent() {
+        primaryStage.removeEventHandler(KeyEvent.KEY_PRESSED, keyEventEventHandler);
     }
 
     /**
@@ -97,21 +98,43 @@ public class TetrisController {
     }
 
     private void inactivateTimer() {
-        goDownTimer.cancel();
+        if(goDownTimer != null)
+            goDownTimer.cancel();
+    }
+
+    private void activateTimer() {
+        goDownTimer = new Timer(true);
+        goDownTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                Platform.runLater(()->goDown());
+            }
+        }, 0, 800);
+    }
+
+    private void gameOverHandler() {
+        System.out.println("Game Over!!!");
     }
 
     /**
      * <p>当方块无法继续往下后，说明一轮已经结束，
-     * 此时判断并消除可被消除的行，填补消除后的空行</p>
+     * 此时判断并消除可被消除的行，填补消除后的空行，进入下一轮</p>
      * @author pgy
      * @since 1.0
      * @Date 2021/9/16 20:59
      */
-    private void RoundOver() throws GameOverException {
+    private void roundOverHandler() {
         // 令goDownTimer失效
         inactivateTimer();
+        // 令keyEvent失效
+        inactivateKeyEvent();
         // 将方块合并至主面板中
-        mainBoard.mergeBlock();
+        try {
+            mainBoard.mergeBlock();
+        } catch (GameOverException e) {
+            gameOverHandler();
+            return;
+        }
         // 消除行
         int erasedRows = mainBoard.eraseRows();
         // 设置消除行数并加分
@@ -119,10 +142,25 @@ public class TetrisController {
         gameInfo.addScore(new CalScore());
         show(mainBoard.getBoard());
         // 填补空行
-
-        while(mainBoard.downRows()) {
-            show(mainBoard.getBoard());
-        }
+        Timer fillEmptyRowsTimer = new Timer(true);
+        fillEmptyRowsTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                Platform.runLater(()->{
+                    if(mainBoard.downRows())
+                        show(mainBoard.getBoard());
+                    else
+                        fillEmptyRowsTimer.cancel();
+                });
+            }
+        }, 500, 500);
+        // 进入下一轮
+        gameInfo.nextRound();
+        boardBlock.loadBlocks();
+        // 令goDownTimer生效
+        activateTimer();
+        // 令keyEvent生效
+        activateKeyEvent();
     }
 
     /**
@@ -131,22 +169,21 @@ public class TetrisController {
      * @since 1.0
      * @Date 2021/9/16 21:05
      */
-    public void rotate() {
+    public synchronized void rotate() {
         boardBlock.rotateBlock();
         show(mainBoard.getBoardShot());
     }
 
     /**
      * <p>当前块下降一格</p>
-     * @throws RoundOverException 无法再继续下降了
      * @author pgy
      * @since 1.0
      * @Date 2021/9/16 21:05
      */
-    public void goDown() throws RoundOverException {
+    public synchronized void goDown() {
         if(!boardBlock.downBlock())
-            throw new RoundOverException("can't move down any more");
-        show(mainBoard.getBoardShot());
+            roundOverHandler();
+        else show(mainBoard.getBoardShot());
     }
 
     /**
@@ -155,7 +192,7 @@ public class TetrisController {
      * @since 1.0
      * @Date 2021/9/16 21:06
      */
-    public void goLeft() {
+    public synchronized void goLeft() {
         boardBlock.leftBlock();
         show(mainBoard.getBoardShot());
     }
@@ -166,21 +203,20 @@ public class TetrisController {
      * @since 1.0
      * @Date 2021/9/16 21:06
      */
-    public void goRight() {
+    public synchronized void goRight() {
         boardBlock.rightBlock();
         show(mainBoard.getBoardShot());
     }
 
     /**
      * <p>令当前块直接下移到最下面，结束当前轮</p>、
-     * @throws RoundOverException 无法再继续下降了
      * @author pgy
      * @since 1.0
      * @Date 2021/9/16 21:07
      */
-    public void goStraightDown() throws RoundOverException {
+    public synchronized void goStraightDown() {
         while(boardBlock.downBlock());
         show(mainBoard.getBoardShot());
-        throw new RoundOverException("can't move down any more");
+        roundOverHandler();
     }
 }

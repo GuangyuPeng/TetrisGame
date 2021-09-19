@@ -2,9 +2,11 @@ package pub.fashioner.tetris.view;
 
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 import pub.fashioner.tetris.controller.TetrisController;
 
@@ -13,7 +15,6 @@ import java.io.IOException;
 public class TetrisView extends Application {
 
     private Stage primaryStage;
-    private AnchorPane rootPane;
 
     private TetrisViewController viewController;
 
@@ -35,15 +36,17 @@ public class TetrisView extends Application {
             // Load fxml file.
             FXMLLoader loader = new FXMLLoader();
             loader.setLocation(TetrisView.class.getResource("GameBoard.fxml"));
-            rootPane = (AnchorPane) loader.load();
+            AnchorPane rootPane = (AnchorPane) loader.load();
 
             // Show the scene containing the root layout.
             Scene scene = new Scene(rootPane);
             primaryStage.setScene(scene);
-            primaryStage.show();
 
             // get controller
             this.viewController = loader.getController();
+            this.viewController.initSize();
+
+            primaryStage.show();
         } catch (IOException e) {
             e.printStackTrace();
         }
