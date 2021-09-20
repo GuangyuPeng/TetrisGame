@@ -19,7 +19,7 @@
         <items>
           <AnchorPane minHeight="0.0" prefHeight="998.0" prefWidth="500.0" SplitPane.resizableWithParent="false">
                <children>
-                  <Pane opacity="0.5" prefHeight="998.0" prefWidth="496.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                  <Pane opacity="0.5" prefHeight="998.0" prefWidth="496.0" visible="false" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
                      <children>
                         <Rectangle arcHeight="5.0" arcWidth="5.0" height="1000.0" stroke="BLACK" strokeType="INSIDE" width="500.0" />
                      </children>
